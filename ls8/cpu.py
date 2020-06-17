@@ -2,6 +2,25 @@
 
 import sys
 
+LDI = 0b10000010
+PRA = 0b01001000
+PRN = 0b01000111
+HLT = 0b00000001
+MUL = 0b10100010
+DIV = 0b10100011
+ADD = 0b10100000
+SUB = 0b10100001
+opcodes = [
+    LDI,
+    PRA,
+    PRN,
+    HLT,
+    MUL,
+    DIV,
+    ADD,
+    SUB,
+]
+
 class CPU:
     """Main CPU class."""
 
@@ -14,35 +33,59 @@ class CPU:
         self.mar = 0
         self.mdr = 0
         self.fl = 0
+        self.branch_table = {
+            LDI: self.handle_LDI,
+            PRA: self.handle_PRA,
+            PRN: self.handle_PRN,
+            HLT: self.handle_HLT,
+            MUL: self.handle_MUL,
+            DIV: self.handle_DIV,
+            ADD: self.handle_ADD,
+            SUB: self.handle_SUB
+        }
 
     def load(self):
         """Load a program into memory."""
 
-        address = 0
-
-        # For now, we've just hardcoded a program:
-
-        program = [
-            # From print8.ls8
-            0b10000010, # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111, # PRN R0
-            0b00000000,
-            0b00000001, # HLT
-        ]
-
-        for instruction in program:
-            self.ram[address] = instruction
-            address += 1
-
-
+        if len(sys.argv) < 2:
+            address = 0
+            program = [
+                # From print8.ls8
+                0b10000010, # LDI R0,8
+                0b00000000,
+                0b00001000,
+                0b01000111, # PRN R0
+                0b00000000,
+                0b00000001, # HLT
+            ]
+            for instruction in program:
+                self.ram[address] = instruction
+                address += 1
+        # If there is 1 argument: load the program
+        elif len(sys.argv) == 2:
+            filename = sys.argv[1]
+            with open(filename) as f:
+                address = 0
+                for line in f:
+                    if line[0] != "#" or line[0] != " ":
+                        line = line.split("#")
+                        try:
+                            v = int(line[0], 2)
+                        except ValueError:
+                            continue
+                        self.ram[address] = v
+                        address += 1
+        else:
+            print("You can only load one ls8 program. Usage: 'python ls8.py example.ls8'")
+            sys.exit(1)
+   
+   
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
-
         if op == "ADD":
-            self.reg[reg_a] += self.reg[reg_b]
-        #elif op == "SUB": etc
+            self.register[reg_a] += self.register[reg_b]
+        elif op == "MUL":
+            self.register[reg_a] *= self.register[reg_b]
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -67,7 +110,6 @@ class CPU:
         print()
 
     def run(self):
-        """Run the CPU."""
         running = True
 
         while running:
@@ -95,7 +137,22 @@ class CPU:
             # HLT: ends run()
             elif self.ir == 0b00000001:
                 running = False
+        
+        # running = None
 
+        # while running == None:
+        #     value = self.ram[self.pc]
+    
+        # if value not in opcodes:
+        #     print(f"Unknown instruction {self.ir} at address {self.pc}")
+        #     print(self.ram)
+        #     running = False
+        #     sys.exit(1)
+        
+        # else:
+        #     self.ir = value
+        #     running = self.branch_table[self.ir]()
+        
     def ram_read(self, address):
         return self.ram[address]
 
