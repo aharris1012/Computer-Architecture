@@ -10,6 +10,9 @@ MUL = 0b10100010
 DIV = 0b10100011
 ADD = 0b10100000
 SUB = 0b10100001
+POP = 0b01000110
+PUSH = 0b01000101
+
 opcodes = [
     LDI,
     PRA,
@@ -19,6 +22,8 @@ opcodes = [
     DIV,
     ADD,
     SUB,
+    POP,
+    PUSH,
 ]
 
 class CPU:
@@ -29,6 +34,7 @@ class CPU:
         self.register = [0] * 8
         self.ram = [0] * 256
         self.pc = 0
+        self.SP = 7
         self.ir = 0
         self.mar = 0
         self.mdr = 0
@@ -41,7 +47,9 @@ class CPU:
             MUL: self.handle_MUL,
             DIV: self.handle_DIV,
             ADD: self.handle_ADD,
-            SUB: self.handle_SUB
+            SUB: self.handle_SUB,
+            POP: self.handle_POP,
+            PUSH: self.handle_PUSH,
         }
 
     def load(self):
@@ -110,52 +118,77 @@ class CPU:
         print()
 
     def run(self):
-        running = True
+        """Run the CPU."""
+        running = None
 
-        while running:
+        self.register[self.SP] = 0xf4
+
+        while running == None:
             value = self.ram[self.pc]
-            self.ir = value
-
-            # LDI: loads valueB into register at valueA...register[valueA] = valueB
-            if self.ir == 0b10000010:
-                operand_a = self.ram_read(self.pc+1)
-                operand_b = self.ram_read(self.pc+2)
-                self.register[operand_a] = operand_b
-                self.pc += 3
-
-            # PRA: prints alpha-character
-            elif self.ir == 0b01001000:
-                print(self.register[self.pc+1])
-                self.pc += 2
-
-            # PRN: prints a number
-            elif self.ir == 0b01000111:
-                index = self.ram_read(self.pc+1)
-                print(self.register[index])
-                self.pc += 2
-
-            # HLT: ends run()
-            elif self.ir == 0b00000001:
+            if value not in opcodes:
+                print(f"Unknown instruction {self.ir} at address {self.pc}")
+                print(self.ram)
                 running = False
-        
-        # running = None
-
-        # while running == None:
-        #     value = self.ram[self.pc]
-    
-        # if value not in opcodes:
-        #     print(f"Unknown instruction {self.ir} at address {self.pc}")
-        #     print(self.ram)
-        #     running = False
-        #     sys.exit(1)
-        
-        # else:
-        #     self.ir = value
-        #     running = self.branch_table[self.ir]()
-        
+                sys.exit(1)
+            else:
+                self.ir = value
+                running = self.branch_table[self.ir]()
     def ram_read(self, address):
         return self.ram[address]
-
     def ram_write(self, address, value):
         self.ram[address] = value
+    def handle_LDI(self):
+        operand_a = self.ram_read(self.pc+1)
+        operand_b = self.ram_read(self.pc+2)
+        self.register[operand_a] = operand_b
+        self.pc += 3
+    def handle_PRA(self):
+        print(self.register[self.pc+1])
+        self.pc += 2
+    def handle_PRN(self):
+        index = self.ram_read(self.pc+1)
+        print(self.register[self.ram[self.pc+1]])
+        self.pc += 2
+    
+    def handle_HLT(self):
+        return False
+    def handle_MUL(self):
+        operand_a = self.ram_read(self.pc+1)
+        operand_b = self.ram_read(self.pc+2)
+        self.alu("MUL", operand_a, operand_b)
+        print(self.register[operand_a])
+        self.pc += 2
+    def handle_DIV(self):
+        operand_a = self.ram_read(self.pc+1)
+        operand_b = self.ram_read(self.pc+2)
+        self.alu("DIV", operand_a, operand_b)
+        print(self.register[operand_a])
+        self.pc += 2
+    def handle_ADD(self):
+        operand_a = self.ram_read(self.pc+1)
+        operand_b = self.ram_read(self.pc+2)
+        self.alu("ADD", operand_a, operand_b)
+        print(self.register[operand_a])
+        self.pc += 2
+    def handle_SUB(self):
+        operand_a = self.ram_read(self.pc+1)
+        operand_b = self.ram_read(self.pc+2)
+        self.alu("SUB", operand_a, operand_b)
+        print(self.register[operand_a])
+        self.pc += 2
 
+    def handle_POP(self):
+        reg_num = self.ram[self.pc+1]
+        top_of_stack_addr = self.register[self.SP]
+        value = self.ram[top_of_stack_addr]
+        self.register[reg_num] = value
+        self.pc += 2
+        self.register[self.SP] += 1
+
+    def handle_PUSH(self):
+        self.register[self.SP] -= 1
+        reg_num = self.ram[self.pc+1]
+        value = self.register[reg_num]
+        top_of_stack_addr = self.register[self.SP]
+        self.ram[top_of_stack_addr] = value
+        self.pc += 2 
