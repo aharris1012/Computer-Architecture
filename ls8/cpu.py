@@ -268,7 +268,7 @@ class CPU:
         addr = self.register[reg_num]
         self.pc = addr
 
-    def handle_JEQ(self):
+     def handle_JEQ(self):
         if self.E == 1:
             self.handle_JMP()
         else:
