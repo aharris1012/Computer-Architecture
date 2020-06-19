@@ -152,7 +152,7 @@ class CPU:
         ), end='')
 
         for i in range(8):
-            print(" %02X" % self.reg[i], end='')
+            print(" %02X" % self.register[i], end='')
 
         print()
 
@@ -190,7 +190,7 @@ class CPU:
         self.pc += 2
 
     def handle_PRN(self):
-        index = self.ram_read(self.pc+1)
+        # index = self.ram_read(self.pc+1)
         print(self.register[self.ram[self.pc+1]])
         self.pc += 2
     
